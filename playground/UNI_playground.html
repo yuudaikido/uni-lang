@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNI Playground — 全母国語プログラミング言語</title>
+<style>
+:root{
+  --paper:#EDF0F2; --panel:#FFFFFF; --ink:#1F262E; --line:#D6DCE1;
+  --kw:#274C9A;      /* 瑠璃: キーワード */
+  --var:#B4362E;     /* 茜: 「変数 */
+  --param:#B26A00;   /* 琥珀: ￥引数 */
+  --str:#3D7A46;     /* 苔: ’文字列’ */
+  --fn:#6D4FA1;      /* 菫: ひらがな関数・動詞 */
+  --mk:#4A6070;      /* 鈍: マーカー */
+  --cm:#8A939E;      /* 灰: コメント */
+  --num:#0F6B6B;     /* 青碧: 数値 */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",Meiryo,sans-serif;
+  min-height:100vh;display:flex;flex-direction:column}
+header{padding:26px 32px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+  font-weight:600;font-size:34px;letter-spacing:.14em;line-height:1}
+h1 .uni-src{font-size:15px;letter-spacing:0;margin-left:18px;vertical-align:middle;
+  font-family:ui-monospace,"SF Mono",Consolas,"Hiragino Kaku Gothic ProN",monospace}
+.sub{margin-top:8px;font-size:13px;color:var(--mk)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:12px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend b{font-weight:600}
+main{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:0}
+@media (max-width:880px){main{grid-template-columns:1fr}}
+.pane{display:flex;flex-direction:column;min-height:340px}
+.pane-l{border-right:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.bar label{font-size:12px;color:var(--mk)}
+select,button{font:inherit;font-size:13px;padding:5px 12px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink);border-radius:4px;cursor:pointer}
+button.run{background:var(--kw);color:#fff;border-color:var(--kw)}
+button.run:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--kw);outline-offset:2px}
+.editor-wrap{position:relative;flex:1;min-height:0}
+.hl,textarea{position:absolute;inset:0;padding:16px;white-space:pre-wrap;word-break:break-all;
+  font-family:ui-monospace,"SF Mono",Consolas,"Hiragino Kaku Gothic ProN",monospace;
+  font-size:15px;line-height:1.75;letter-spacing:.02em}
+.hl{overflow:auto;pointer-events:none;color:var(--ink)}
+textarea{resize:none;border:0;background:transparent;color:transparent;caret-color:var(--ink);overflow:auto}
+textarea:focus{outline:none}
+.tK{color:var(--kw);font-weight:700}.tV{color:var(--var)}.tP{color:var(--param);font-weight:600}
+.tS{color:var(--str)}.tF{color:var(--fn)}.tM{color:var(--mk)}.tC{color:var(--cm)}.tN{color:var(--num)}
+.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel)}
+.tab{padding:10px 16px 8px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:var(--mk)}
+.tab small{display:block;font-size:10px;color:var(--cm)}
+.tab.on{color:var(--ink);border-bottom-color:var(--kw);font-weight:600}
+.out{flex:1;overflow:auto;padding:16px;background:var(--panel);
+  font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:13.5px;line-height:1.65;white-space:pre-wrap}
+.errors{border-top:1px solid var(--line);background:#FBF3F2;color:#7C2D26;
+  padding:10px 16px;font-size:13px;white-space:pre-wrap;display:none;max-height:130px;overflow:auto}
+.errors.show{display:block}
+footer{padding:10px 32px;border-top:1px solid var(--line);font-size:12px;color:var(--mk);background:var(--panel)}
+@media (prefers-reduced-motion:no-preference){.tab{transition:border-color .15s,color .15s}}
+</style>
+</head>
+<body>
+<header>
+  <h1>UNI<span class="uni-src"><span class="tS">’うに’</span> <span class="tF">出す</span><span class="tM">。</span></span></h1>
+  <div class="sub">全母国語プログラミング言語 — 書いた瞬間、4つの言語になる。IME切り替えは一度も要らない。</div>
+  <div class="legend">
+    <span><b class="tV">「</b>=変数</span>
+    <span><b class="tP">￥「</b>=引数</span>
+    <span><b class="tF">ひらがな</b>=関数・動詞</span>
+    <span><b class="tK">全角大文字</b>=制御</span>
+    <span><b class="tS">’…’</b>=文字列</span>
+    <span><b class="tC">・・</b>=コメント</span>
+    <span>一文字目だけで品詞が決まる文法</span>
+  </div>
+</header>
+<main>
+  <section class="pane pane-l" aria-label="UNIソース">
+    <div class="bar">
+      <label for="sample">サンプル</label>
+      <select id="sample">
+        <option value="hello">こんにちは世界</option>
+        <option value="kansu">関数とループ</option>
+        <option value="list">リストと辞書</option>
+        <option value="seiseki" selected>成績管理(中規模)</option>
+        <option value="v05">v0.5新構文(入れ子・剰余ほか)</option>
+      </select>
+      <span style="flex:1"></span>
+      <span style="font-size:12px;color:var(--cm)">日本語入力のままどうぞ</span>
+    </div>
+    <div class="editor-wrap">
+      <div class="hl" id="hl" aria-hidden="true"></div>
+      <textarea id="src" spellcheck="false" aria-label="UNIソースコード"></textarea>
+    </div>
+    <div class="errors" id="errors" role="alert"></div>
+  </section>
+  <section class="pane" aria-label="変換結果">
+    <div class="tabs" role="tablist">
+      <div class="tab on" data-t="py" role="tab">Python<small>print</small></div>
+      <div class="tab" data-t="php" role="tab">PHP<small>echo</small></div>
+      <div class="tab" data-t="js" role="tab">JavaScript<small>console.log</small></div>
+      <div class="tab" data-t="java" role="tab">Java<small>System.out.println</small></div>
+      <div class="tab" data-t="doc" role="tab">文法書<small>v0.5 全記載</small></div>
+    </div>
+    <div class="bar">
+      <span style="font-size:12px;color:var(--cm)">同じ中立ASTからの投影</span>
+      <span style="flex:1"></span>
+      <button class="run" id="run">JavaScriptを実行</button>
+    </div>
+    <div class="out" id="out"></div>
+  </section>
+</main>
+<footer>UNI 文法コアv0.5 — パーサはターゲットを知らない。対応表1枚で母国語が増える。</footer>
+
+<script>
+'use strict';
+/* ================= UNI トランスパイラ(uni.py v0.4 のJS移植) ================= */
+const PROTECT = '、。「」’￥；';
+function normalize(src){
+  let out='';
+  for(const ch of src) out += PROTECT.includes(ch) ? ch : ch.normalize('NFKC');
+  out = out.replace(/¥/g,'￥').replace(/[−－]/g,'-');
+  const KD={'〇':'0','一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9'};
+  const kconv=w=>{w=[...w].map(c=>KD[c]??c).join('');
+    w=w.replace(/(\d)十(\d)/g,'$1$2').replace(/(\d)十/g,'$10').replace(/十(\d)/g,'1$1').replace(/十/g,'10');return w;};
+  out = out.replace(/[〇一二三四五六七八九十]+(?=(?:個|つ|番)目)/g,kconv);
+  out = out.replace(/(?<![\u3040-\u30FF\u4E00-\u9FFF])[〇一二三四五六七八九十]+(?![\u3040-\u30FF\u4E00-\u9FFF])/g,kconv);
+  return out;
+}
+function stripComment(line){
+  let out='',inS=false;
+  for(let i=0;i<line.length;i++){
+    if(line[i]==='’') inS=!inS;
+    if(!inS && (line.slice(i,i+2)==='・・'||line.slice(i,i+2)==='//')) break;
+    out+=line[i];
+  }
+  return out;
+}
+function splitStatements(line){
+  const st=[];let buf='',inS=false;
+  for(const ch of line){
+    if(ch==='’'){inS=!inS;buf+=ch;}
+    else if(ch==='。'&&!inS){if(buf.trim())st.push(buf.trim());buf='';}
+    else buf+=ch;
+  }
+  if(buf.trim())st.push(buf.trim());
+  return st;
+}
+const CMP=[['より大きい','>'],['より小さい','<'],['以上','>='],['以下','<='],['とおなじ','=='],['と同じ','=='],['とちがう','!='],['と違う','!=']];
+const OPS={'足す':'+=','たす':'+=','引く':'-=','ひく':'-=','掛ける':'*=','かける':'*=','割る':'/=','わる':'/='};
+const ORD='(?:つ|個|番)目';
+function splitLLItems(body){
+  const items=[];let buf='',depth=0,inS=false,i=0;
+  while(i<body.length){
+    const ch=body[i];
+    if(ch==='’')inS=!inS;
+    if(!inS){
+      if(body.slice(i,i+2).toUpperCase()==='LL'&&!(/[A-Za-z0-9]/.test(body[i+2]||''))){depth++;buf+=body.slice(i,i+2);i+=2;continue;}
+      if(ch==='」'){depth--;buf+=ch;i++;continue;}
+      if(ch==='、'&&depth===0){items.push(buf);buf='';i++;continue;}
+    }
+    buf+=ch;i++;
+  }
+  if(buf.trim())items.push(buf);
+  return items;
+}
+function llValue(tok){
+  const t=tok.trim();
+  if(/^LL(\s|[^A-Za-z0-9]|$)/i.test(t)){
+    const inner=t.replace(/^LL\s*/i,'').replace(/」\s*$/,'');
+    if(/[；;]/.test(inner)){
+      const pairs=[];
+      for(const p of splitLLItems(inner)){
+        if(!p.trim())continue;
+        const idx=p.search(/[；;]/);
+        pairs.push([datum(p.slice(0,idx)),llValue(p.slice(idx+1))]);
+      }
+      return ['dictval',pairs];
+    }
+    return ['listval',splitLLItems(inner).filter(p=>p.trim()).map(p=>llValue(p))];
+  }
+  return datum(t);
+}
+function atom(tok){
+  tok=tok.trim();
+  let mc=tok.match(new RegExp('^「(\\S+?)((?:\\s*\\d+(?:つ|個|番)目){2,})$'));
+  if(mc){
+    const idxs=[...mc[2].matchAll(/(\d+)(?:つ|個|番)目/g)].map(x=>parseInt(x[1])-1);
+    return ['idxchain',mc[1],idxs];
+  }
+  if(tok.startsWith('’')&&tok.endsWith('’')){
+    const c=tok.slice(1,-1);
+    if(c.includes('「')&&c.includes('」')){
+      const parts=c.split(/「([^\s」]+?)」/);
+      const segs=[];
+      parts.forEach((p,i)=>{if(p!=='')segs.push(i%2?['var',p]:['txt',p]);});
+      return ['fstr',segs];
+    }
+    return ['str',c];
+  }
+  if(tok==='ヌル'||tok==='ﾇﾙ')return ['null'];
+  let m=tok.match(new RegExp('^「(\\S+?)\\s*(\\d+)'+ORD+'$'));
+  if(m)return ['idx',m[1],parseInt(m[2])-1];
+  m=tok.match(/^「(\S+?)\s+(\S+)$/);
+  if(m)return ['key',m[1],datum(m[2])];
+  if(tok.startsWith('「'))return ['var',tok.slice(1)];
+  if(/^-?\d+(\.\d+)?$/.test(tok))return ['num',tok];
+  return ['raw',tok];
+}
+function datum(tok){const a=atom(tok);return a[0]==='raw'?['str',a[1]]:a;}
+const MSG={
+ ja:{for_no_range:'FOR文には「(リスト)から」か「(終値)まで」のどちらかが必要です',
+     for_no_start:'FOR文の開始値が見つかりません(例: FOR 1 「Iが3まで)',
+     for_no_var:'FOR文のループ変数「〇〇が」が見つかりません',
+     bad_stmt:'この文を解釈できません。関数名はひらがな、変数は「で始めてください',
+     no_use:'PlaygroundではUSE(ファイル取込)は使えません',
+     header:(l,m,s)=>`【${l}行目】${m}\n  → ${s}`},
+ en:{for_no_range:'FOR needs either "from (list)" or "to (end value)"',
+     for_no_start:'FOR start value not found',
+     for_no_var:'FOR loop variable not found',
+     bad_stmt:'Cannot parse this statement',
+     no_use:'USE is not available in the playground',
+     header:(l,m,s)=>`[line ${l}] ${m}\n  -> ${s}`},
+};
+class UniErr extends Error{constructor(key){super(key);this.key=key;}}
+class Parser{
+  constructor(lang='ja'){this.lastVar=null;this.colls=new Set();this.ir=[];this.lang=lang;this.errors=[];}
+  put(d,n){this.ir.push([d,n]);}
+  cond(body){
+    if(body.includes('または'))return ['logic','or',body.split('または').map(p=>this.cond(p))];
+    if(body.includes('かつ'))return ['logic','and',body.split('かつ').map(p=>this.cond(p))];
+    body=body.trim();
+    if(body.endsWith('でない'))return ['not',this.cond(body.slice(0,-3))];
+    for(const [jp,op] of CMP){
+      if(body.includes(jp)){
+        const left=body.split(jp)[0];
+        const m=left.match(/(「\S+?|’[^’]*’)?\s*(\S+)\s*$/);
+        const l=m[1]?atom(m[1]):['var',this.lastVar];
+        return ['cmp',l,op,atom(m[2])];
+      }
+    }
+    return atom(body);
+  }
+  stmt(s,depth){
+    s=s.trim().replace(/\{+\s*$/,'').trim();
+    if(!s||s==='}')return [depth,0];
+    let m=s.match(/^定義\s+(\S+?)((?:\s+￥「\S+)*)\s*$/);
+    if(m){
+      const params=[...m[2].matchAll(/￥「(\S+)/g)].map(x=>x[1]);
+      this.put(depth,['def',m[1],params]);return [depth,1];
+    }
+    if(/^USE\b/i.test(s))throw new UniErr('no_use');
+    if(/^BREAK$/i.test(s)){this.put(depth,['break']);return [depth,0];}
+    if(/^CONTINUE$/i.test(s)){this.put(depth,['continue']);return [depth,0];}
+    if(/^TRY$/i.test(s)){this.put(depth,['try']);return [depth,1];}
+    if(/^CATCH$/i.test(s)){this.put(depth,['catch']);return [depth,1];}
+    if(/^FOR\b/i.test(s)&&!s.includes('まで')){
+      const lst=s.match(/「([^「\s]+?)\s*から/);
+      if(!lst)throw new UniErr('for_no_range');
+      const v=s.match(/「([^「\s]+?)が/);
+      const step=s.match(/(\d+)ずつ/);
+      const vv=v?v[1]:'それ';
+      this.put(depth,['foreach',vv,lst[1],step?parseInt(step[1]):1]);
+      this.lastVar=vv;return [depth,1];
+    }
+    if(/^FOR\b/i.test(s)){
+      const v=s.match(/「([^「\s]+?)が/);
+      if(!v)throw new UniErr('for_no_var');
+      const sEnd=s.replace(/「[^「\s]+?が/g,'');
+      const end=sEnd.match(/(「[^「\s]+?|\d+)まで/);
+      if(!end)throw new UniErr('for_no_range');
+      const step=s.match(/(\d+)ずつ/);
+      const down=s.includes('へる');
+      const rest=s.replace(/「[^「\s]+?が/g,'').replace(/(「[^「\s]+?|\d+)まで/g,'').replace(/\d+ずつ(ふえる|へる)?/g,'').replace(/ふえる|へる/g,'').replace(/^FOR/i,'');
+      const start=rest.match(/\d+/);
+      if(!start)throw new UniErr('for_no_start');
+      this.put(depth,['forrange',v[1],start[0],atom(end[1]),step?step[1]:'1',down]);
+      return [depth,1];
+    }
+    if(/^ELSE\s+IF\b/i.test(s)){this.put(depth,['elif',this.cond(s.replace(/^ELSE\s+IF\s*/i,''))]);return [depth,1];}
+    if(/^ELSE\b/i.test(s)){this.put(depth,['else']);return [depth,1];}
+    if(/^WHILE\b/i.test(s)){this.put(depth,['while',this.cond(s.replace(/^WHILE\s*/i,''))]);return [depth,1];}
+    if(/^IF\b/i.test(s)){this.put(depth,['if',this.cond(s.replace(/^IF\s*/i,''))]);return [depth,1];}
+    m=s.match(/^「(\S+?)\s*=\s*(.+)$/);
+    if(m){
+      const name=m[1],rhs=m[2].trim();
+      const mex=rhs.match(/^EX\s*’([^’]+)’(?:\s*、(.*))?$/i);
+      if(mex){
+        const args=mex[2]?mex[2].split('、').map(p=>atom(p)):[];
+        this.put(depth,['assignext',name,mex[1],args]);this.lastVar=name;return [depth,0];
+      }
+      const mll=rhs.match(/^LL(?:\s+|(?=[^A-Za-z0-9])|$)(.*)$/is);
+      if(mll&&(/[；;]/.test(mll[1]))){
+        const pairs=[];
+        for(const p of splitLLItems(mll[1])){
+          if(!p.trim())continue;
+          const i=p.search(/[；;]/);
+          pairs.push([datum(p.slice(0,i)),llValue(p.slice(i+1))]);
+        }
+        this.put(depth,['dictlit',name,pairs]);this.colls.add(name);
+      }else if(mll){
+        const items=splitLLItems(mll[1]).filter(p=>p.trim()).map(p=>llValue(p));
+        this.put(depth,['listlit',name,items]);this.colls.add(name);
+      }else{
+        const parts=rhs.split('、').map(p=>p.trim());
+        if(parts.length>1)this.put(depth,['assigncall',name,parts[0],parts.slice(1).map(p=>atom(p))]);
+        else if(/^[ぁ-ゖー]+$/.test(rhs))this.put(depth,['assigncall',name,rhs,[]]);
+        else this.put(depth,['assign',name,atom(rhs)]);
+      }
+      this.lastVar=name;return [depth,0];
+    }
+    m=s.match(/^「(\S+?)\s+(\S+)\s*から$/);
+    if(m){this.put(depth,['assign',m[1],atom(m[2])]);this.lastVar=m[1];return [depth,0];}
+    m=s.match(/^「(\S+?)(から)?$/);
+    if(m&&!['足す','渡す','出す','消す','かえる'].some(v=>s.includes(v))){
+      this.put(depth,['assign',m[1],['num','0']]);this.lastVar=m[1];return [depth,0];
+    }
+    m=s.match(new RegExp('^「(\\S+?)\\s+(\\d+)'+ORD+'\\s+(\\S+)\\s+かえる$'));
+    if(m){this.put(depth,['setidx',m[1],parseInt(m[2])-1,datum(m[3])]);return [depth,0];}
+    m=s.match(new RegExp('^「(\\S+?)\\s+(\\S+?)\\s+(?:(\\d+)'+ORD+'\\s+)?(\\S+)\\s+かえる$'));
+    if(m){this.put(depth,['setkey',m[1],datum(m[2]),datum(m[4])]);return [depth,0];}
+    m=s.match(new RegExp('^「(\\S+?)\\s+(\\d+)'+ORD+'\\s+消す\\s+(左|ヌル)$'));
+    if(m){this.put(depth,[m[3]==='左'?'delshift':'delnull',m[1],parseInt(m[2])-1]);return [depth,0];}
+    const s2=s.replace(/^「(\S+?)に\s*/,'「$1 ');
+    m=s2.match(/^(「\S+\s+)?(\S+?)\s*(ずつ)?(足す|たす|引く|ひく|掛ける|かける|割る|わる)$/);
+    if(m){
+      const target=m[1]?m[1].trim().slice(1):this.lastVar;
+      if(this.colls.has(target)&&(m[4]==='足す'||m[4]==='たす'))
+        this.put(depth,['append',target,datum(m[2])]);
+      else this.put(depth,['aug',target,OPS[m[4]],atom(m[2])]);
+      return [depth,0];
+    }
+    m=s.match(/^(最後に)?\s*「?(\S+?)\s*渡す$/);
+    if(m){this.put(depth,['return',['var',m[2]]]);return [depth,0];}
+    m=s.match(/^(.+?)\s*出す$/);
+    if(m){this.put(depth,['print',atom(m[1])]);return [depth,0];}
+    const mex=s.match(/^EX\s*’([^’]+)’(?:\s*、(.*))?$/i);
+    if(mex){
+      const args=mex[2]?mex[2].split('、').map(p=>atom(p)):[];
+      this.put(depth,['externcall',mex[1],args]);return [depth,0];
+    }
+    const parts=s.split('、').map(p=>p.trim());
+    if(!/^[ぁ-ゖー]+$/.test(parts[0]))throw new UniErr('bad_stmt');
+    this.put(depth,['call',parts[0],parts.slice(1).map(p=>atom(p))]);
+    return [depth,0];
+  }
+  parse(src){
+    src=normalize(src);
+    const indents=[0];let depth=0,pending=0;
+    const lines=src.split('\n');
+    for(let li=0;li<lines.length;li++){
+      const raw=lines[li];
+      if(!stripComment(raw).trim())continue;
+      const ind=raw.length-raw.replace(/^[\u3000 \t]+/,'').length;
+      if(pending){indents.push(ind);depth+=pending;pending=0;}
+      else{while(indents.length>1&&ind<indents[indents.length-1]){indents.pop();depth--;}}
+      for(const st of splitStatements(stripComment(raw.trim()))){
+        try{
+          const [d,o]=this.stmt(st,depth);depth=d;pending+=o;
+        }catch(e){
+          const T=MSG[this.lang];
+          const key=(e instanceof UniErr)?e.key:'bad_stmt';
+          this.errors.push(T.header(li+1,T[key],st));
+        }
+      }
+    }
+    return [this.ir,this.colls];
+  }
+}
+/* ---------- バックエンド共通ヘルパ ---------- */
+function esc(s){return s.replace(/"/g,'\\"');}
+function tplCall(tpl,rendered){
+  if(tpl.includes('{a0}')){rendered.forEach((r,i)=>{tpl=tpl.split('{a'+i+'}').join(r);});return tpl;}
+  return tpl.split('{a}').join(rendered.join(', '));
+}
+/* ---------- Python ---------- */
+class PyB{
+  constructor(colls){this.colls=colls;this.imports=new Set();}
+  static BUILTIN={'ながさ':['len({a})',null],'へいほうこん':['math.sqrt({a})','math'],'きく':['input()',null],'あまり':['({a0} % {a1})',null]};
+  e(a){
+    switch(a[0]){
+      case 'str':return '"'+esc(a[1])+'"';
+      case 'fstr':return 'f"'+a[1].map(p=>p[0]==='txt'?p[1]:'{'+p[1]+'}').join('')+'"';
+      case 'num':return a[1];case 'null':return 'None';case 'var':return a[1];
+      case 'idx':return `${a[1]}[${a[2]}]`;
+      case 'idxchain':return a[1]+a[2].map(i=>`[${i}]`).join('');
+      case 'key':return `${a[1]}[${this.e(a[2])}]`;
+      case 'listval':return '['+a[1].map(x=>this.e(x)).join(', ')+']';
+      case 'dictval':return '{'+a[1].map(([k,v])=>`${this.e(k)}: ${this.e(v)}`).join(', ')+'}';
+      case 'cmp':return `${this.e(a[1])} ${a[2]} ${this.e(a[3])}`;
+      case 'logic':return a[2].map(x=>`(${this.e(x)})`).join(a[1]==='or'?' or ':' and ');
+      case 'not':return `not (${this.e(a[1])})`;
+      default:return a[1];
+    }
+  }
+  fcall(fn,args){
+    const rendered=args.map(x=>this.e(x));
+    const b=PyB.BUILTIN[fn];
+    if(b){if(b[1])this.imports.add(b[1]);return tplCall(b[0],rendered);}
+    return `${fn}(${rendered.join(', ')})`;
+  }
+  ext(code,args){
+    if(code.includes('.'))this.imports.add(code.split('.')[0]);
+    return `${code}(${args.map(x=>this.e(x)).join(', ')})`;
+  }
+  render(ir){
+    const out=[];
+    for(const [depth,n] of ir){
+      const pad='    '.repeat(depth),k=n[0];
+      if(k==='def')out.push(`${pad}def ${n[1]}(${n[2].join(', ')}):`);
+      else if(k==='forrange'){
+        const [_,v,a,b,c,down]=n;const be=this.e(b);
+        out.push(down?`${pad}for ${v} in range(${a}, ${be}-1, -${c}):`:`${pad}for ${v} in range(${a}, ${be}+1, ${c}):`);
+      }
+      else if(k==='foreach')out.push(`${pad}for ${n[1]} in ${n[2]}${n[3]!==1?`[::${n[3]}]`:''}:`);
+      else if(k==='if')out.push(`${pad}if ${this.e(n[1])}:`);
+      else if(k==='elif')out.push(`${pad}elif ${this.e(n[1])}:`);
+      else if(k==='else')out.push(`${pad}else:`);
+      else if(k==='while')out.push(`${pad}while ${this.e(n[1])}:`);
+      else if(k==='assign')out.push(`${pad}${n[1]} = ${this.e(n[2])}`);
+      else if(k==='assigncall')out.push(`${pad}${n[1]} = ${this.fcall(n[2],n[3])}`);
+      else if(k==='assignext')out.push(`${pad}${n[1]} = ${this.ext(n[2],n[3])}`);
+      else if(k==='externcall')out.push(`${pad}${this.ext(n[1],n[2])}`);
+      else if(k==='listlit')out.push(`${pad}${n[1]} = [${n[2].map(x=>this.e(x)).join(', ')}]`);
+      else if(k==='dictlit')out.push(`${pad}${n[1]} = {${n[2].map(([kk,vv])=>`${this.e(kk)}: ${this.e(vv)}`).join(', ')}}`);
+      else if(k==='setidx')out.push(`${pad}${n[1]}[${n[2]}] = ${this.e(n[3])}`);
+      else if(k==='setkey')out.push(`${pad}${n[1]}[${this.e(n[2])}] = ${this.e(n[3])}`);
+      else if(k==='delshift')out.push(`${pad}del ${n[1]}[${n[2]}]`);
+      else if(k==='delnull')out.push(`${pad}${n[1]}[${n[2]}] = None`);
+      else if(k==='append')out.push(`${pad}${n[1]}.append(${this.e(n[2])})`);
+      else if(k==='aug')out.push(`${pad}${n[1]} ${n[2]} ${this.e(n[3])}`);
+      else if(k==='return')out.push(`${pad}return ${this.e(n[1])}`);
+      else if(k==='print')out.push(`${pad}print(${this.e(n[1])})`);
+      else if(k==='call')out.push(`${pad}${this.fcall(n[1],n[2])}`);
+      else if(k==='break')out.push(`${pad}break`);
+      else if(k==='continue')out.push(`${pad}continue`);
+      else if(k==='try')out.push(`${pad}try:`);
+      else if(k==='catch')out.push(`${pad}except Exception as ex:`);
+    }
+    return [...[...this.imports].sort().map(m=>`import ${m}`),...out].join('\n');
+  }
+}
+/* ---------- C系共通(PHP/JS) ---------- */
+function cRender(ir,ctx){
+  const out=ctx.prelude?[...ctx.prelude]:[];const stack=[];
+  const closeTo=d=>{while(stack.length&&stack[stack.length-1]>=d){out.push('    '.repeat(stack.pop())+'}');}};
+  for(const [depth,n] of ir){
+    closeTo(depth);
+    const pad='    '.repeat(depth),k=n[0];
+    let opens=['def','forrange','foreach','if','elif','else','while','try','catch'].includes(k);
+    const L=ctx.line(k,n,pad,depth);
+    if(L===null){opens=false;}
+    else if(Array.isArray(L))out.push(...L);
+    else out.push(L);
+    if(opens)stack.push(depth);
+  }
+  closeTo(0);
+  let code=out.join('\n');
+  code=code.replace(/\}\n(\s*)elif_MARK/g,'} else if').replace(/\}\n(\s*)elseif/g,'} elseif')
+           .replace(/\}\n(\s*)else \{/g,'} else {').replace(/\}\n(\s*)catch/g,'} catch');
+  return code;
+}
+/* ---------- PHP ---------- */
+class PhpB{
+  constructor(colls){this.colls=colls;}
+  static BUILTIN={'ながさ':'count({a})','へいほうこん':'sqrt({a})','きく':'trim(fgets(STDIN))','あまり':'({a0} % {a1})'};
+  e(a){
+    switch(a[0]){
+      case 'str':return '"'+esc(a[1])+'"';
+      case 'fstr':return '"'+a[1].map(p=>p[0]==='txt'?p[1]:'{$'+p[1]+'}').join('')+'"';
+      case 'num':return a[1];case 'null':return 'null';case 'var':return '$'+a[1];
+      case 'idx':return `$${a[1]}[${a[2]}]`;
+      case 'idxchain':return '$'+a[1]+a[2].map(i=>`[${i}]`).join('');
+      case 'key':return `$${a[1]}[${this.e(a[2])}]`;
+      case 'listval':return '['+a[1].map(x=>this.e(x)).join(', ')+']';
+      case 'dictval':return '['+a[1].map(([k,v])=>`${this.e(k)} => ${this.e(v)}`).join(', ')+']';
+      case 'cmp':return `${this.e(a[1])} ${a[2]} ${this.e(a[3])}`;
+      case 'logic':return a[2].map(x=>`(${this.e(x)})`).join(a[1]==='or'?' || ':' && ');
+      case 'not':return `!(${this.e(a[1])})`;
+      default:return a[1];
+    }
+  }
+  pr(a){
+    const ex=this.e(a);
+    if(a[0]==='var'&&this.colls.has(a[1]))return `json_encode(${ex}, JSON_UNESCAPED_UNICODE)`;
+    if(['var','key','idx','idxchain'].includes(a[0]))return `(is_array(${ex}) ? json_encode(${ex}, JSON_UNESCAPED_UNICODE) : ${ex})`;
+    return ex;
+  }
+  fcall(fn,args){
+    const rendered=args.map(x=>this.e(x));
+    return PhpB.BUILTIN[fn]?tplCall(PhpB.BUILTIN[fn],rendered):`${fn}(${rendered.join(', ')})`;
+  }
+  render(ir){
+    return cRender(ir,{prelude:['<?php'],line:(k,n,pad)=>{
+      switch(k){
+        case 'def':return `${pad}function ${n[1]}(${n[2].map(p=>'$'+p).join(', ')}) {`;
+        case 'forrange':{const v='$'+n[1],be=this.e(n[3]);
+          return n[5]?`${pad}for (${v} = ${n[2]}; ${v} >= ${be}; ${v} -= ${n[4]}) {`
+                     :`${pad}for (${v} = ${n[2]}; ${v} <= ${be}; ${v} += ${n[4]}) {`;}
+        case 'foreach':{const v='$'+n[1],seq='$'+n[2];
+          if(n[3]===1)return `${pad}foreach (${seq} as ${v}) {`;
+          const i=`$${n[1]}_i`;
+          return [`${pad}for (${i} = 0; ${i} < count(${seq}); ${i} += ${n[3]}) {`,`${pad}    ${v} = ${seq}[${i}];`];}
+        case 'if':return `${pad}if (${this.e(n[1])}) {`;
+        case 'elif':return `${pad}elseif (${this.e(n[1])}) {`;
+        case 'else':return `${pad}else {`;
+        case 'while':return `${pad}while (${this.e(n[1])}) {`;
+        case 'assign':return `${pad}$${n[1]} = ${this.e(n[2])};`;
+        case 'assigncall':return `${pad}$${n[1]} = ${this.fcall(n[2],n[3])};`;
+        case 'assignext':return `${pad}$${n[1]} = ${n[2]}(${n[3].map(x=>this.e(x)).join(', ')});`;
+        case 'externcall':return `${pad}${n[1]}(${n[2].map(x=>this.e(x)).join(', ')});`;
+        case 'listlit':return `${pad}$${n[1]} = [${n[2].map(x=>this.e(x)).join(', ')}];`;
+        case 'dictlit':return `${pad}$${n[1]} = [${n[2].map(([kk,vv])=>`${this.e(kk)} => ${this.e(vv)}`).join(', ')}];`;
+        case 'setidx':return `${pad}$${n[1]}[${n[2]}] = ${this.e(n[3])};`;
+        case 'setkey':return `${pad}$${n[1]}[${this.e(n[2])}] = ${this.e(n[3])};`;
+        case 'delshift':return `${pad}array_splice($${n[1]}, ${n[2]}, 1);`;
+        case 'delnull':return `${pad}$${n[1]}[${n[2]}] = null;`;
+        case 'append':return `${pad}$${n[1]}[] = ${this.e(n[2])};`;
+        case 'aug':return `${pad}$${n[1]} ${n[2]} ${this.e(n[3])};`;
+        case 'return':return `${pad}return ${this.e(n[1])};`;
+        case 'print':return `${pad}echo ${this.pr(n[1])}, PHP_EOL;`;
+        case 'call':return `${pad}${this.fcall(n[1],n[2])};`;
+        case 'break':return `${pad}break;`;
+        case 'continue':return `${pad}continue;`;
+        case 'try':return `${pad}try {`;
+        case 'catch':return `${pad}catch (Exception $ex) {`;
+      }
+    }});
+  }
+}
+/* ---------- JS ---------- */
+class JsB{
+  constructor(colls){this.colls=colls;this.declared=new Set();}
+  static BUILTIN={'ながさ':'({a}).length','へいほうこん':'Math.sqrt({a})','きく':"require('fs').readFileSync(0,'utf8').trim()",'あまり':'({a0} % {a1})'};
+  e(a){
+    switch(a[0]){
+      case 'str':return '"'+esc(a[1])+'"';
+      case 'fstr':return '`'+a[1].map(p=>p[0]==='txt'?p[1]:'${'+p[1]+'}').join('')+'`';
+      case 'num':return a[1];case 'null':return 'null';case 'var':return a[1];
+      case 'idx':return `${a[1]}[${a[2]}]`;
+      case 'idxchain':return a[1]+a[2].map(i=>`[${i}]`).join('');
+      case 'key':return `${a[1]}[${this.e(a[2])}]`;
+      case 'listval':return '['+a[1].map(x=>this.e(x)).join(', ')+']';
+      case 'dictval':return '{'+a[1].map(([k,v])=>`${this.e(k)}: ${this.e(v)}`).join(', ')+'}';
+      case 'cmp':return `${this.e(a[1])} ${a[2]} ${this.e(a[3])}`;
+      case 'logic':return a[2].map(x=>`(${this.e(x)})`).join(a[1]==='or'?' || ':' && ');
+      case 'not':return `!(${this.e(a[1])})`;
+      default:return a[1];
+    }
+  }
+  pr(a){return a[0]==='var'&&this.colls.has(a[1])?`JSON.stringify(${this.e(a)})`:this.e(a);}
+  fcall(fn,args){
+    const rendered=args.map(x=>this.e(x));
+    return JsB.BUILTIN[fn]?tplCall(JsB.BUILTIN[fn],rendered):`${fn}(${rendered.join(', ')})`;
+  }
+  decl(name){if(this.declared.has(name))return '';this.declared.add(name);return 'let ';}
+  render(ir){
+    return cRender(ir,{line:(k,n,pad)=>{
+      switch(k){
+        case 'def':this.declared=new Set(n[2]);return `${pad}function ${n[1]}(${n[2].join(', ')}) {`;
+        case 'forrange':{const be=this.e(n[3]);this.declared.add(n[1]);
+          return n[5]?`${pad}for (let ${n[1]} = ${n[2]}; ${n[1]} >= ${be}; ${n[1]} -= ${n[4]}) {`
+                     :`${pad}for (let ${n[1]} = ${n[2]}; ${n[1]} <= ${be}; ${n[1]} += ${n[4]}) {`;}
+        case 'foreach':{this.declared.add(n[1]);
+          if(n[3]===1)return `${pad}for (const ${n[1]} of ${n[2]}) {`;
+          const i=`${n[1]}_i`;
+          return [`${pad}for (let ${i} = 0; ${i} < ${n[2]}.length; ${i} += ${n[3]}) {`,`${pad}    const ${n[1]} = ${n[2]}[${i}];`];}
+        case 'if':return `${pad}if (${this.e(n[1])}) {`;
+        case 'elif':return `${pad}elif_MARK (${this.e(n[1])}) {`;
+        case 'else':return `${pad}else {`;
+        case 'while':return `${pad}while (${this.e(n[1])}) {`;
+        case 'assign':return `${pad}${this.decl(n[1])}${n[1]} = ${this.e(n[2])};`;
+        case 'assigncall':return `${pad}${this.decl(n[1])}${n[1]} = ${this.fcall(n[2],n[3])};`;
+        case 'assignext':return `${pad}${this.decl(n[1])}${n[1]} = ${n[2]}(${n[3].map(x=>this.e(x)).join(', ')});`;
+        case 'externcall':return `${pad}${n[1]}(${n[2].map(x=>this.e(x)).join(', ')});`;
+        case 'listlit':return `${pad}${this.decl(n[1])}${n[1]} = [${n[2].map(x=>this.e(x)).join(', ')}];`;
+        case 'dictlit':return `${pad}${this.decl(n[1])}${n[1]} = {${n[2].map(([kk,vv])=>`${this.e(kk)}: ${this.e(vv)}`).join(', ')}};`;
+        case 'setidx':return `${pad}${n[1]}[${n[2]}] = ${this.e(n[3])};`;
+        case 'setkey':return `${pad}${n[1]}[${this.e(n[2])}] = ${this.e(n[3])};`;
+        case 'delshift':return `${pad}${n[1]}.splice(${n[2]}, 1);`;
+        case 'delnull':return `${pad}${n[1]}[${n[2]}] = null;`;
+        case 'append':return `${pad}${n[1]}.push(${this.e(n[2])});`;
+        case 'aug':return `${pad}${n[1]} ${n[2]} ${this.e(n[3])};`;
+        case 'return':return `${pad}return ${this.e(n[1])};`;
+        case 'print':return `${pad}console.log(${this.pr(n[1])});`;
+        case 'call':return `${pad}${this.fcall(n[1],n[2])};`;
+        case 'break':return `${pad}break;`;
+        case 'continue':return `${pad}continue;`;
+        case 'try':return `${pad}try {`;
+        case 'catch':return `${pad}catch (ex) {`;
+      }
+    }});
+  }
+}
+/* ---------- Java(型推論つき) ---------- */
+class JavaB{
+  constructor(colls){this.colls=colls;this.fnparams={};this.scopes={};}
+  static BUILTIN={'ながさ':['{a}.size()','int'],'へいほうこん':['Math.sqrt({a})','double'],'きく':['SC.nextLine()','String'],'あまり':['({a0} % {a1})','int']};
+  infer(ir){
+    const scopes={'<main>':{}};const fnRet={};let cur='<main>';
+    for(const [depth,n] of ir){
+      const k=n[0];
+      if(k==='def'){cur=n[1];scopes[cur]={};n[2].forEach(p=>scopes[cur][p]='int');this.fnparams[cur]=[...n[2]];continue;}
+      if(depth===0)cur='<main>';
+      const t=scopes[cur];
+      if(k==='assign'){const a=n[2];
+        t[n[1]]=a[0]==='num'?(a[1].includes('.')?'double':'int')
+               :(a[0]==='str'||a[0]==='fstr')?'String'
+               :a[0]==='var'?(t[a[1]]||'Object'):'Object';}
+      else if(k==='listlit')t[n[1]]='List<Object>';
+      else if(k==='dictlit')t[n[1]]='Map<Object,Object>';
+      else if(k==='assigncall')t[n[1]]=JavaB.BUILTIN[n[2]]?JavaB.BUILTIN[n[2]][1]:'@ret:'+n[2];
+      else if(k==='assignext')t[n[1]]='double';
+      else if(k==='aug'){
+        if(n[2]==='/='||(n[3][0]==='num'&&n[3][1].includes('.'))||(n[3][0]==='var'&&t[n[3][1]]==='Object'))t[n[1]]='double';}
+      else if(k==='forrange')t[n[1]]='int';
+      else if(k==='foreach'){t[n[1]]='Object';if(t[n[2]]==='int')t[n[2]]='List<Object>';}
+      else if(k==='return')fnRet[cur]=t[n[1][1]]||'Object';
+    }
+    for(const sc of Object.values(scopes))
+      for(const [v,ty] of Object.entries(sc))
+        if(typeof ty==='string'&&ty.startsWith('@ret:'))sc[v]=fnRet[ty.slice(5)]||'Object';
+    return [scopes,fnRet];
+  }
+  e(a,t){
+    switch(a[0]){
+      case 'str':return '"'+esc(a[1])+'"';
+      case 'fstr':return a[1].map(p=>p[0]==='txt'?'"'+esc(p[1])+'"':p[1]).join(' + ');
+      case 'num':return a[1];case 'null':return 'null';case 'var':return a[1];
+      case 'idx':return `${a[1]}.get(${a[2]})`;
+      case 'idxchain':{let ex=a[1];for(const i of a[2].slice(0,-1))ex=`((List<Object>)${ex}.get(${i}))`;return `${ex}.get(${a[2][a[2].length-1]})`;}
+      case 'key':return `${a[1]}.get(${this.e(a[2],t)})`;
+      case 'listval':return 'new ArrayList<>(Arrays.asList('+a[1].map(x=>this.e(x,t)).join(', ')+'))';
+      case 'dictval':return 'new LinkedHashMap<>(Map.of('+a[1].map(([k,v])=>`${this.e(k,t)}, ${this.e(v,t)}`).join(', ')+'))';
+      case 'cmp':{let l=this.e(a[1],t);
+        if(a[1][0]==='var'&&t[a[1][1]]==='Object')l=`((Number)${l}).doubleValue()`;
+        return `${l} ${a[2]} ${this.e(a[3],t)}`;}
+      case 'logic':return a[2].map(x=>`(${this.e(x,t)})`).join(a[1]==='or'?' || ':' && ');
+      case 'not':return `!(${this.e(a[1],t)})`;
+      default:return a[1];
+    }
+  }
+  castArg(x,t,ptype){
+    const ex=this.e(x,t);
+    if(['var','idx','key'].includes(x[0])){
+      const xt=x[0]==='var'?(t[x[1]]||'Object'):'Object';
+      if(xt==='Object'&&ptype==='int')return `((Number)${ex}).intValue()`;
+      if(xt==='Object'&&ptype==='double')return `((Number)${ex}).doubleValue()`;
+    }
+    return ex;
+  }
+  fcall(fn,args,t){
+    const b=JavaB.BUILTIN[fn];
+    if(b){
+      const rendered=b[0].includes('{a0}')?args.map(x=>this.castArg(x,t,'int')):args.map(x=>this.e(x,t));
+      return tplCall(b[0],rendered);
+    }
+    const ptypes=(this.fnparams[fn]||[]).map(p=>(this.scopes[fn]||{})[p]||'Object');
+    return `${fn}(${args.map((x,i)=>this.castArg(x,t,ptypes[i]||'Object')).join(', ')})`;
+  }
+  render(ir){
+    const [scopes,fnRet]=this.infer(ir);
+    this.scopes=scopes;
+    const funcs=[];const main=[];
+    let cur='<main>',buf=null,t=scopes['<main>'],declared=new Set();
+    const stack=[];
+    const sink=()=>buf!==null?buf:main;
+    const closeTo=d=>{while(stack.length&&stack[stack.length-1]>=d){sink().push('    '.repeat(stack.pop()+2)+'}');}};
+    for(const [depth,n] of ir){
+      const k=n[0];
+      if(k==='def'){
+        closeTo(0);
+        if(buf)funcs.push(buf);
+        cur=n[1];t=scopes[cur];declared=new Set(n[2]);buf=[];
+        const ret=fnRet[cur]||'void';
+        buf.push(`    static ${ret} ${cur}(${n[2].map(p=>`${t[p]} ${p}`).join(', ')}) {`);
+        stack.push(0);continue;
+      }
+      if(depth===0&&buf!==null){closeTo(0);funcs.push(buf);buf=null;cur='<main>';t=scopes['<main>'];declared=new Set();}
+      closeTo(depth);
+      const pad='    '.repeat(depth+2);const o=sink();
+      let opens=['forrange','foreach','if','elif','else','while','try','catch'].includes(k);
+      const decl=name=>{if(declared.has(name))return '';declared.add(name);return (t[name]||'Object')+' ';};
+      if(k==='forrange'){const be=this.e(n[3],t);declared.add(n[1]);
+        o.push(n[5]?`${pad}for (int ${n[1]} = ${n[2]}; ${n[1]} >= ${be}; ${n[1]} -= ${n[4]}) {`
+                   :`${pad}for (int ${n[1]} = ${n[2]}; ${n[1]} <= ${be}; ${n[1]} += ${n[4]}) {`);}
+      else if(k==='foreach'){declared.add(n[1]);
+        if(n[3]===1)o.push(`${pad}for (Object ${n[1]} : ${n[2]}) {`);
+        else{const i=`${n[1]}_i`;
+          o.push(`${pad}for (int ${i} = 0; ${i} < ${n[2]}.size(); ${i} += ${n[3]}) {`);
+          o.push(`${pad}    Object ${n[1]} = ${n[2]}.get(${i});`);}}
+      else if(k==='if')o.push(`${pad}if (${this.e(n[1],t)}) {`);
+      else if(k==='elif')o.push(`${pad}elif_MARK (${this.e(n[1],t)}) {`);
+      else if(k==='else')o.push(`${pad}else {`);
+      else if(k==='while')o.push(`${pad}while (${this.e(n[1],t)}) {`);
+      else if(k==='assign')o.push(`${pad}${decl(n[1])}${n[1]} = ${this.e(n[2],t)};`);
+      else if(k==='assigncall')o.push(`${pad}${decl(n[1])}${n[1]} = ${this.fcall(n[2],n[3],t)};`);
+      else if(k==='assignext')o.push(`${pad}${decl(n[1])}${n[1]} = ${n[2]}(${n[3].map(x=>this.e(x,t)).join(', ')});`);
+      else if(k==='externcall')o.push(`${pad}${n[1]}(${n[2].map(x=>this.e(x,t)).join(', ')});`);
+      else if(k==='listlit'){const items=n[2].map(x=>this.e(x,t)).join(', ');
+        o.push(items?`${pad}${decl(n[1])}${n[1]} = new ArrayList<>(Arrays.asList(${items}));`
+                    :`${pad}${decl(n[1])}${n[1]} = new ArrayList<>();`);}
+      else if(k==='dictlit'){o.push(`${pad}${decl(n[1])}${n[1]} = new LinkedHashMap<>();`);
+        for(const [kk,vv] of n[2])o.push(`${pad}${n[1]}.put(${this.e(kk,t)}, ${this.e(vv,t)});`);}
+      else if(k==='setidx')o.push(`${pad}${n[1]}.set(${n[2]}, ${this.e(n[3],t)});`);
+      else if(k==='setkey')o.push(`${pad}${n[1]}.put(${this.e(n[2],t)}, ${this.e(n[3],t)});`);
+      else if(k==='delshift')o.push(`${pad}${n[1]}.remove(${n[2]});`);
+      else if(k==='delnull')o.push(`${pad}${n[1]}.set(${n[2]}, null);`);
+      else if(k==='append')o.push(`${pad}${n[1]}.add(${this.e(n[2],t)});`);
+      else if(k==='aug'){let sv=this.e(n[3],t);
+        if(n[3][0]==='var'&&t[n[3][1]]==='Object')sv=`((Number)${sv}).doubleValue()`;
+        o.push(`${pad}${n[1]} ${n[2]} ${sv};`);}
+      else if(k==='return')o.push(`${pad}return ${this.e(n[1],t)};`);
+      else if(k==='print')o.push(`${pad}System.out.println(${this.e(n[1],t)});`);
+      else if(k==='call')o.push(`${pad}${this.fcall(n[1],n[2],t)};`);
+      else if(k==='break')o.push(`${pad}break;`);
+      else if(k==='continue')o.push(`${pad}continue;`);
+      else if(k==='try')o.push(`${pad}try {`);
+      else if(k==='catch')o.push(`${pad}catch (Exception ex) {`);
+      if(opens)stack.push(depth);
+    }
+    closeTo(0);
+    if(buf)funcs.push(buf);
+    const body=['import java.util.*;','public class Main {','    static Scanner SC = new Scanner(System.in);'];
+    funcs.forEach(f=>body.push(...f));
+    body.push('    public static void main(String[] args) {');
+    main.forEach(l=>body.push('    '+l));
+    body.push('    }','}');
+    let code=body.join('\n');
+    code=code.replace(/\}\n(\s*)elif_MARK/g,'} else if').replace(/\}\n(\s*)else \{/g,'} else {').replace(/\}\n(\s*)catch/g,'} catch');
+    return code;
+  }
+}
+/* ================= Playground UI ================= */
+const SAMPLES={
+v05:`・・v0.5の構文いろいろ
+「表　＝　LL　LL　１、２、３」、LL　４、５、６」。
+「なか　＝　「表　１つ目　２つ目。
+’表[0][1]は「なか」’　出す。
+FOR　１　「Nが１５まで｛
+　「み　＝　あまり、「N、３。
+　「ご　＝　あまり、「N、５。
+　IF　「み　０と同じ　かつ　「ご　０と同じ｛
+　　’FizzBuzz’　出す。
+　ELSE　IF　「み　０と同じ｛
+　　’Fizz’　出す。
+　ELSE　IF　「ご　０と同じ｛
+　　’Buzz’　出す。
+　ELSE｛
+　　「N　出す。`,
+hello:`・・はじめてのUNI
+’こんにちは、世界’　出す。
+「なまえ　＝　’ゆうだい’。
+’ようこそ「なまえ」さん’　出す。`,
+kansu:`定義　ごうけいする　￥「上限｛
+　「合計　０　から
+　FOR　１　「Iが「上限まで　１ずつふえる｛
+　　「合計　「I　足す
+　最後に「合計渡す
+
+「答え　＝　ごうけいする、１０。
+’１から１０の合計：「答え」’　出す。`,
+list:`「くだもの　＝　LL　りんご、みかん、ばなな。
+「くだもの　’もも’　足す
+FOR　「くだもの　から　「実が｛
+　「実　出す。
+「じしょ　＝　LL　くだもの；りんご、きかい；ぱそこん。
+「じしょ　きかい　出す。
+「くだもの　二個目　消す　左
+「くだもの　出す。`,
+seiseki:`・・成績管理(全機能横断)
+定義　へいきんする　￥「点list｛
+　「合計　０　から
+　FOR　「点list　から　「点が｛
+　　「合計　「点　足す
+　「人数　＝　ながさ、「点list。
+　「合計　「人数　割る
+　最後に「合計渡す
+
+定義　はんていする　￥「点数｛
+　「評価　＝　’？’。
+　IF　「点数　９０以上｛
+　　「評価　＝　’Ｓ’。
+　ELSE　IF　「点数　８０以上｛
+　　「評価　＝　’Ａ’。
+　ELSE　IF　「点数　６０以上｛
+　　「評価　＝　’Ｂ’。
+　ELSE｛
+　　「評価　＝　’不可’。
+　最後に「評価渡す
+
+「名簿　＝　LL　あきら、ふゆこ、はると。
+「点数表　＝　LL　あきら；９２、ふゆこ；７５、はると；５８。
+
+FOR　「名簿　から　「名が｛
+　「点　＝　「点数表　「名。
+　「評価　＝　はんていする、「点。
+　’「名」さん：「点」点　評価「評価」’　出す。
+
+「点だけ　＝　LL　９２、７５、５８。
+「平均　＝　へいきんする、「点だけ。
+’平均：「平均」点’　出す。`,
+};
+const el=id=>document.getElementById(id);
+const KW=/^(FOR|IF|ELSE|WHILE|TRY|CATCH|BREAK|CONTINUE|LL|EX|USE)$/i;
+const VERBS=['最後に','より大きい','より小さい','以上','以下','と同じ','とちがう','足す','たす','引く','ひく','掛ける','かける','割る','わる','渡す','出す','かえる','消す','ふえる','へる','かつ','または','でない','から','まで','ずつ','きく','ながさ','へいほうこん','ヌル','個目','つ目','番目','定義'];
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function highlight(src){
+  return src.split('\n').map(line=>{
+    let out='',i=0,inC=false;
+    while(i<line.length){
+      const rest=line.slice(i);
+      if(rest.startsWith('・・')||rest.startsWith('//')){out+=`<span class="tC">${escapeHtml(rest)}</span>`;break;}
+      if(line[i]==='’'){
+        const j=line.indexOf('’',i+1);
+        const seg=j<0?line.slice(i):line.slice(i,j+1);
+        out+=`<span class="tS">${escapeHtml(seg)}</span>`;i+=seg.length;continue;
+      }
+      if(rest.startsWith('￥「')){
+        const m=rest.match(/^￥「[^\s＝、。｛｝；’」=]+/);
+        out+=`<span class="tP">${escapeHtml(m[0])}</span>`;i+=m[0].length;continue;
+      }
+      if(line[i]==='「'){
+        const m=rest.match(/^「[^\s＝、。｛｝；’」=]+/);
+        const seg=m?m[0]:'「';
+        out+=`<span class="tV">${escapeHtml(seg)}</span>`;i+=seg.length;continue;
+      }
+      let matched=false;
+      const wm=rest.match(/^[A-Za-zＡ-Ｚａ-ｚ]+/);
+      if(wm&&KW.test(wm[0].normalize('NFKC'))){
+        out+=`<span class="tK">${escapeHtml(wm[0])}</span>`;i+=wm[0].length;continue;
+      }
+      for(const v of VERBS){
+        if(rest.startsWith(v)){out+=`<span class="${v==='定義'?'tK':'tF'}">${escapeHtml(v)}</span>`;i+=v.length;matched=true;break;}
+      }
+      if(matched)continue;
+      const nm=rest.match(/^[-−0-9０-９][0-9０-９.．]*/);
+      if(nm){out+=`<span class="tN">${escapeHtml(nm[0])}</span>`;i+=nm[0].length;continue;}
+      out+=escapeHtml(line[i]);i++;
+    }
+    return out;
+  }).join('\n')+'\n';
+}
+let currentTab='py',lastCodes={};
+function transpileAll(){
+  const src=el('src').value;
+  el('hl').innerHTML=highlight(src);
+  const results={};let errors=[];
+  for(const tgt of ['py','php','js','java']){
+    const p=new Parser('ja');
+    const [ir,colls]=p.parse(src);
+    if(p.errors.length){errors=p.errors;results[tgt]='';continue;}
+    try{
+      const B={py:PyB,php:PhpB,js:JsB,java:JavaB}[tgt];
+      results[tgt]=new B(colls).render(ir);
+    }catch(e){results[tgt]='(生成エラー: '+e.message+')';}
+  }
+  lastCodes=results;
+  const errBox=el('errors');
+  if(errors.length){errBox.textContent=errors.join('\n');errBox.classList.add('show');}
+  else errBox.classList.remove('show');
+  showTab(currentTab);
+}
+function showTab(t){
+  currentTab=t;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+  if(t==='doc'){el('out').innerHTML=GRAMMAR;return;}
+  el('out').textContent=lastCodes[t]||'';
+}
+function runJs(){
+  const code=lastCodes.js;
+  if(!code){el('out').textContent='(変換エラーのため実行できません)';return;}
+  const logs=[];
+  const fakeConsole={log:(...a)=>logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '))};
+  const fakeRequire=()=>({readFileSync:()=>(prompt('きく：入力してください')??'')});
+  try{new Function('console','require',code)(fakeConsole,fakeRequire);}
+  catch(e){logs.push('実行時エラー: '+e.message);}
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  el('out').textContent='── 実行結果(JavaScript) ──\n'+(logs.join('\n')||'(出力なし)');
+}
+document.querySelectorAll('.tab').forEach(x=>x.addEventListener('click',()=>showTab(x.dataset.t)));
+el('run').addEventListener('click',runJs);
+el('sample').addEventListener('change',e=>{el('src').value=SAMPLES[e.target.value];transpileAll();});
+let timer=null;
+el('src').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(transpileAll,200);});
+el('src').addEventListener('scroll',()=>{el('hl').scrollTop=el('src').scrollTop;el('hl').scrollLeft=el('src').scrollLeft;});
+
+const GRAMMAR=`
+<div style="font-family:inherit;line-height:1.9;font-size:13.5px">
+<h2 style="font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:18px;margin:4px 0 10px">UNI文法書 v0.5(全記載)</h2>
+
+<b>■ 字句規則</b><br>
+・全角/半角・大小文字は同一視(ＦＯＲ＝for、１０＝10、＝＝=)。IME切り替え不要<br>
+・漢数字は「個目/つ目/番目の直前」か「単独」のみ数値化(二個目→2個目。変数名<span class="tV">「一部</span>は壊れない)<br>
+・コメント: <span class="tC">・・行末まで</span>(//も可)<br>
+・<span class="tM">。</span>=文終端(改行でも閉じる)。<span class="tM">{</span>の閉じ}は省略可(インデントで自動)<br>
+・字種判定: <span class="tV">「</span>=変数 / <span class="tP">￥「</span>=引数 / <span class="tF">ひらがな</span>=関数 / <span class="tK">全角大文字</span>=制御 / <span class="tS">’…’</span>=文字列<br><br>
+
+<b>■ 変数・リテラル</b><br>
+<span class="tV">「りんご</span>(宣言・0初期化) / <span class="tV">「りんご</span> <span class="tN">10</span> <span class="tM">から</span>(初期値) / <span class="tV">「りんごの数</span> ＝ <span class="tN">5</span>。(代入)<br>
+数値: <span class="tN">10 −5 1.5</span>(全角可) / 文字列: <span class="tS">’こんにちは’</span> / ヌル=null<br>
+補間: <span class="tS">’こんにちは<span class="tV">「なまえ」</span>さん’</span>(」が閉じ)<br><br>
+
+<b>■ 演算動詞</b>(対象は暗黙=直前の変数、または明示)<br>
+<span class="tF">足す</span>=+=(リスト対象ならappend) / <span class="tF">引く</span>=-= / <span class="tF">掛ける</span>=*= / <span class="tF">割る</span>=/=<br>
+書式: <span class="tN">1</span><span class="tF">足す</span> / <span class="tV">「りんご</span> <span class="tV">「数</span> <span class="tF">足す</span> / <span class="tV">「りんご</span><span class="tM">に</span><span class="tN">5</span><span class="tF">足す</span><br>
+剰余: <span class="tF">あまり</span>、a、b(組み込み関数)<br><br>
+
+<b>■ 比較・論理</b><br>
+<span class="tM">より大きい より小さい 以上 以下 と同じ とちがう</span><br>
+<span class="tF">かつ</span>=AND / <span class="tF">または</span>=OR / 条件末尾の<span class="tF">でない</span>=NOT<br><br>
+
+<b>■ 制御構文</b>(キーワードは英名・全角大文字可)<br>
+<span class="tK">IF</span> 条件 { … <span class="tK">ELSE IF</span> 条件 { … <span class="tK">ELSE</span> {<br>
+<span class="tK">WHILE</span> 条件 { / <span class="tK">BREAK</span> / <span class="tK">CONTINUE</span> / <span class="tK">TRY</span> { … <span class="tK">CATCH</span> {<br><br>
+
+<b>■ FOR(語順自由スロット)</b><br>
+数値: <span class="tK">FOR</span> <span class="tN">1</span> <span class="tV">「Iが</span><span class="tN">9</span><span class="tM">まで</span> <span class="tN">1</span><span class="tM">ずつ</span><span class="tF">ふえる</span> {(1ずつ省略可・へる=降順・終値は「変数も可)<br>
+リスト反復: <span class="tK">FOR</span> <span class="tV">「リスト</span> <span class="tM">から</span> <span class="tV">「要素が</span> {(まで無し=反復。変数省略時=<span class="tV">「それ</span>。2ずつ=飛ばし読み)<br><br>
+
+<b>■ 関数</b><br>
+<span class="tK">定義</span> <span class="tF">りんごをたす</span> <span class="tP">￥「数</span> {(関数名はひらがな・引数は￥「)<br>
+本文で<span class="tV">「数</span>参照 / <span class="tF">最後に</span><span class="tV">「りんご</span><span class="tF">渡す</span>=return<br>
+呼び出し(括弧なし): <span class="tV">「答え</span> ＝ <span class="tF">りんごをたす</span>、<span class="tN">5</span>。 引数ゼロは名前だけ(<span class="tV">「x</span> ＝ <span class="tF">きく</span>。)<br><br>
+
+<b>■ コレクション(LL)</b><br>
+リスト: <span class="tK">LL</span> <span class="tS">’りんご’</span>、<span class="tS">’みかん’</span>。 裸語も文字列扱い / 空=<span class="tK">LL</span>。<br>
+辞書: <span class="tK">LL</span> くだもの<span class="tM">；</span>りんご、数<span class="tM">；</span><span class="tN">3</span>。(；の有無で分岐)<br>
+入れ子(v0.5): <span class="tK">LL</span> <span class="tK">LL</span> <span class="tN">1</span>、<span class="tN">2</span><span class="tM">」</span>、<span class="tK">LL</span> <span class="tN">3</span><span class="tM">」</span>。(内側だけ」で閉じる)<br>
+番地: <span class="tV">「くだもの</span> <span class="tN">3</span><span class="tM">個目</span>(位置) / <span class="tV">「じしょ</span> きかい(キー) / <span class="tV">「表</span> <span class="tN">1</span><span class="tM">つ目</span> <span class="tN">2</span><span class="tM">つ目</span>(連鎖)<br>
+追加: <span class="tF">足す</span> / 置換: <span class="tF">かえる</span> / 削除: <span class="tF">消す</span> <span class="tM">左</span>(詰める)・<span class="tF">消す</span> ヌル(穴を残す)<br><br>
+
+<b>■ 入出力・互換層</b><br>
+<span class="tS">’…’</span> <span class="tF">出す</span>。=出力 / <span class="tV">「x</span> ＝ <span class="tF">きく</span>。=入力<br>
+組み込み: <span class="tF">ながさ</span>(要素数)・<span class="tF">へいほうこん</span>(√)・<span class="tF">あまり</span>(%)・<span class="tF">きく</span><br>
+<span class="tK">EX</span><span class="tS">’time.time’</span>=ネイティブ生呼び出し(ターゲット固定) / <span class="tK">USE</span> <span class="tS">’lib.uni’</span>。=ファイル取込(CLIのみ)<br><br>
+
+<b>■ CLI</b><br>
+python3 uni.py prog.nihongo --target=py|php|js|java [--names=en|romaji] [--lang=ja|en]<br>
+--names=en: 識別子を英名へ(りんごをたす→addApple。を=語順反転)<br><br>
+
+<b>■ 多言語</b> — 対応表15〜20行で母国語追加(英・中・アラビア語実証済)。エラーも行番号つき母国語。
+</div>`;
+
+el('src').value=SAMPLES.seiseki;
+transpileAll();
+</script>
+</body>
+</html>

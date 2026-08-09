@@ -1,0 +1,21 @@
+{
+  "name": "uni-lang",
+  "displayName": "UNI Language",
+  "description": "UNI — 全母国語プログラミング言語のシンタックスハイライト",
+  "version": "0.4.0",
+  "engines": { "vscode": "^1.70.0" },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [{
+      "id": "uni",
+      "aliases": ["UNI", "uni"],
+      "extensions": [".uni", ".nihongo"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "uni",
+      "scopeName": "source.uni",
+      "path": "./syntaxes/uni.tmLanguage.json"
+    }]
+  }
+}

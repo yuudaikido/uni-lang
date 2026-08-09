@@ -1,0 +1,18 @@
+{
+  "name": "UNI",
+  "scopeName": "source.uni",
+  "patterns": [
+    { "name": "comment.line.uni", "match": "(・・|//).*$" },
+    { "name": "string.quoted.uni", "match": "’[^’]*’" },
+    { "name": "keyword.control.uni",
+      "match": "(?i)\\b(FOR|IF|ELSE|WHILE|TRY|CATCH|BREAK|CONTINUE|LL|EX|USE)\\b|(ＦＯＲ|ＩＦ|ＥＬＳＥ|ＷＨＩＬＥ|ＴＲＹ|ＣＡＴＣＨ|ＢＲＥＡＫ|ＣＯＮＴＩＮＵＥ|ＬＬ|ＥＸ|ＵＳＥ)|定義" },
+    { "name": "variable.other.uni", "match": "「[^\\s＝、。｛｝；’」]+" },
+    { "name": "variable.parameter.uni", "match": "￥「[^\\s＝、。｛｝；’」]+" },
+    { "name": "keyword.operator.uni",
+      "match": "(から|まで|ずつ|より大きい|より小さい|以上|以下|と同じ|とちがう|かつ|または|でない|個目|つ目|番目)" },
+    { "name": "support.function.uni",
+      "match": "(足す|たす|引く|ひく|掛ける|かける|割る|わる|渡す|出す|かえる|消す|ふえる|へる|きく|ながさ|へいほうこん|最後に)" },
+    { "name": "constant.numeric.uni", "match": "[-−]?[0-9０-９]+([.．][0-9０-９]+)?|ヌル" },
+    { "name": "keyword.operator.assignment.uni", "match": "[＝=；;、。]" }
+  ]
+}

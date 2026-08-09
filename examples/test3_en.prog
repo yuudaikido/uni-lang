@@ -1,0 +1,12 @@
+define sum \$limit {
+  $total from 0
+  FOR from 1 as $I to $limit by 1 up {
+    $total add $I
+  IF $total above 10 {
+    show 'big'.
+  ELSE {
+    show 'small'.
+  finally give $total
+
+$answer = sum, 5.
+show $answer.
